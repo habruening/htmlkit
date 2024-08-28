@@ -13,6 +13,6 @@ The HTML event handling is a simple and naive pure JS based mechanism, that allo
 
 Disclaimer: I have no JS experience. I don't know any JS framework. I don't know ClojureScript. I have not even tried any of these technologies. This is why I claim HTMLKit naive. I treat JS like an DOM modification language, and nothing else. I cannot say, how practicable my approach for typical applications is. I have no real world feedback from anybody, no success stories, no long term vision and don't feel responsible for the concept of HTMLKit. How well this approach scales for more complicated things, I don't know. I may plan some basic mechanis for data exchange between frontend and backend. For my personal use cases it is exactly what I need, and nothing more.
 
-Whether this library works for ClojureScript or Squint I don't know. I see no use case for this.
+Whether this library works for ClojureScript or Squint I don't know. I see no use case for that combination.
 
 Whether this library works for Babashka I will test in a few days and update this page.
