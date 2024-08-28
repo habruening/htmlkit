@@ -1,7 +1,9 @@
-The purpose of HTMLKit is.
+The purpose of HTMLKit is
 
 1. A Clojure syntax for JS
 2. HTML event handling
+
+.
 
 Compared to ClojureScript or libraries like Squint, HTMLKit does not compile Clojure code into JS. HTMLKit is only a simple syntax conversion, so that JS can easier be created dynamically and integrated into Hiccup. If you use htmlkit/js, you directly write JS with all the semantic of JS and mutability. It does not only feel like writing JS. It is writing JS, but in a homoiconic way.
 
