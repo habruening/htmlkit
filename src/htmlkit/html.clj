@@ -191,13 +191,16 @@
                             js/js)
         handler (reduce (fn [coll [target & values-events]]
                           (into coll
-                                (reduce (fn [coll [value events]]
+                                (reduce (fn [coll [value events option]]
                                           (into coll
-                                                (map (fn [event] (list event (js/jsq (fn [node] (set! (uq target) (uq value))))))
+                                                (map (fn [event] (list event (js/jsq (fn [node]
+                                                                                       (do (set! (uq target) (uq value))
+                                                                                           (uq (if (= option :keep)
+                                                                                                 (js/jsq (jsi (set! node.dataset.color (uq value)))))))))))
                                                      events)))
                                         [] (last values-events))))
                         [] variables-values-events)] 
-    (apply create-with-event-handler (attributes-into-node node {:onLoad initial-values}) handler)))
+    (apply create-with-event-handler (attributes-into-node node {:onLoad initial-values :data-color "yellow"}) handler)))
 
 (comment
   (puppet [:h "node"]
