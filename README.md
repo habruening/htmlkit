@@ -9,25 +9,25 @@ The purpose of HTMLKit is
 
 # Unique Selling Points
 
-Compared to ClojureScript or libraries like Squint, HTMLKit does not compile Clojure code into JS. HTMLKit is only a simple syntax conversion, so that JS can easier be created dynamically and integrated into Hiccup. If you use htmlkit/js, you directly write JS with all the semantic of JS and mutability. It does not only feel like writing JS. It is writing JS, but in a homoiconic way.
+Compared to ClojureScript or libraries like Squint, HTMLKit does not compile Clojure code into JS. HTMLKit is only a simple syntax conversion, so that JS can easier be created dynamically and integrated into Hiccup. If you use htmlkit/js, you directly write JS with all the semantics of JS and with mutable data. It does not only feel like writing JS. It is writing JS, but in a more homoiconic way.
 
 Compared to Scriptjure, the JS part of HTMLKit is less macro based. The main conversion into JS is done by htmlkit/js, which is a function and not a macro. That makes the code easier and the usage more versatile.
 
-The HTML event handling is a simple and naive pure JS based mechanism, that allows to create HTML code with some basic behaviour like hover events, click events, click reactions. The Raison d'Être is to yield out of Hiccup static HTML code with a decent set dynamic behaviour already baked into it, so that no further JS library is required. In simple cases this could be a good alternative to complex JS frameworks. The approach differs from HTMX in that point that with HTMLKit there is no central machinery in the control of everything. The HTML code is reactive as is.
+The HTML event handling is a simple and naive pure JS based mechanism, that allows to create HTML code with some basic behaviour like hover events, click events, click reactions. The Raison d'Être is to yield out of Hiccup static HTML code with a decent set dynamic behaviour already baked into it, so that no JS library is required. In simple cases this could be a good alternative to complex JS frameworks. The approach differs from HTMX in that point that with HTMLKit there is no central machinery in the control of everything. The HTML code is reactive as is.
 
 HTMLKit goes in a similar direction than Electric, but only a very small step. But Electric is explicitly made for experts while HTMLKit is meant to be kept simple and accessible for less experienced persons.
 
 # Future of HTMLKit
 
-Squint seems to be the ideal solution for the same purpose. It generates small JS code and it even allows to use typical Clojure code for this, and not only a Clojure syntax for JS. I have not tried it, because as someone without JS expertise and without knowledge of any JS framework it is hard to understand what Squint is and what it does. I don't understand why it uses the JSX syntax if we have Hiccup. I don't understand for what it has a component mechanism. I will try out Squint some day (perhaps when it is more settled) and learn more what it is. I may abandon HTMLKit then if I find Squint more practicable. For the time being I am more happy with HTMLKit.
+Squint seems to be the ideal solution for the same purpose. It generates small JS code and it even allows to use typical Clojure code, and not only a Clojure syntax for JS. I have not tried it, because as someone without JS expertise and without knowledge of any JS framework it is hard to understand what Squint is and what it does. I don't understand why it uses the JSX syntax if we have Hiccup. I don't understand for what it has a component mechanism. I will try out Squint some day (perhaps when it is more settled) and learn more what it is. I may abandon HTMLKit then if I find Squint more practicable. For the time being I am happy with HTMLKit.
 
-I am convinced that Electric is the right tool for me. But I don't know how practicable Electric in my environment is. Not all persons that I address with HTMLKit are experts enough for Electric, and maybe I am not either. Web development is not an interesting topic for me. But I may try out Electric in the future. I may abandon HTMLKit if I find Electric more practicable.
+I am convinced that Electric is the right tool for me. But I don't know how practicable Electric in my environment is. Not all persons that I address with HTMLKit are experts enough for Electric, and maybe I am not either. Web development is not a hobby and not an interesting topic for me. However, I may try out Electric in the future. I may abandon HTMLKit if I find Electric more practicable.
 
 I may plan some basic mechanis for data exchange between frontend and backend.
 
-I may plan a basic mechanism for state management if I find something that is useful without poinsoning the mental DOM. We cannot change the situation that HTML is stateful. So I will not try to framework away the state.
+I may plan a basic mechanism for state management if I find something that is useful without poinsoning the mental DOM. But I cannot change the situation that HTML is stateful. So I will not try to framework away the state.
 
-Please let me know if you use HTMLKit. If there I people actually using it, I feel more engaged to it. At the moment it is only a project for my own needs. I will give it up at any time, when I am in the mood to stop it.
+Please let me know if you use HTMLKit. If there are people actually using it, I feel more engaged to it. At the moment it is only a project for my own needs. I will give it up at any time, when I am in the mood to stop it.
 
 # Disclaimer
 I have no JS experience. I don't know any JS framework. I don't know ClojureScript. I have not even tried any of these technologies. This is why I claim HTMLKit naive. I treat JS like an DOM modification language, and nothing else. I cannot say, how practicable my approach for typical applications is. I have no real world feedback from anybody, no success stories, no long term vision and don't feel responsible for the concept of HTMLKit. How well this approach scales for more complicated things, I don't know. For my personal use cases it is exactly what I need, and nothing more.
@@ -36,5 +36,4 @@ I have no JS experience. I don't know any JS framework. I don't know ClojureScri
 
 Whether this library works for ClojureScript or Squint I don't know. I see no use case for that combination.
 
-Whether this library works for Babashka I will test in a few days and update this page.
-
+This library works with Babashka.

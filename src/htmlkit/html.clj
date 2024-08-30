@@ -213,10 +213,10 @@
               (let-event-map [events [:onClick :onMouseEnter :onMouseLeave]]
                              (add-events [:p "I send events"] events)
                              (puppet [:p "I react"] 
-                                     ['node.style.display "auto" [["none" [(events :onClick)]]
+                                     ['node.style.display "auto" [["block" [(events :onClick)]]
                                                                   ["auto" [cancel]]]]
-                                     ['node.visibility "visible" [["hidden" [(events :onMouseEnter)]]
-                                                                  ["visible" [(events :onMouseLeave)]]]]))))
+                                     ['node.style.visibility "visible" [["hidden" [(events :onMouseEnter)]] 
+                                                                        ["visible" [(events :onMouseLeave)]]]]))))
 
 ;;; Todo: puppet and with-event-handler<-jsq cannot be used together, because they both create
 ;;; lists. But both need nodes. They also both add their own id. So this conflicts. Perhaps the
