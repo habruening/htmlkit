@@ -189,18 +189,30 @@
                             (map #(list 'set! (first %) (second %)))
                             (apply list 'do)
                             js/js)
+        data                (clojure.string/lower-case (str (gensym)))
+        data-keyword        (keyword (str "data-" data))
+        data-symbol         (symbol (str 'node.dataset. data))
+
         handler (reduce (fn [coll [target & values-events]]
                           (into coll
                                 (reduce (fn [coll [value events option]]
                                           (into coll
-                                                (map (fn [event] (list event (js/jsq (fn [node]
-                                                                                       (do (set! (uq target) (uq value))
-                                                                                           (uq (if (= option :keep)
-                                                                                                 (js/jsq (jsi (set! node.dataset.color (uq value)))))))))))
+                                                (map (fn [event]
+                                                       (list event
+                                                             (js/jsq
+                                                              (fn [node]
+                                                                (do (set! (uq target) (uq (if (= value :kept) data-symbol value)))
+                                                                    (uq (if (= option :keep)
+                                                                          (js/jsq (jsi (set! (uq data-symbol) (uq value)))))))))))
                                                      events)))
                                         [] (last values-events))))
-                        [] variables-values-events)] 
-    (apply create-with-event-handler (attributes-into-node node {:onLoad initial-values :data-color "yellow"}) handler)))
+                        [] variables-values-events)]
+    (apply create-with-event-handler (attributes-into-node node {:onLoad initial-values data-keyword "yellow"}) handler)))
+
+(gensym)
+
+(keyword (str "data-" (gensym)))
+(symbol (str 'node.dataset. (gensym)))
 
 (comment
   (puppet [:h "node"]

@@ -33,7 +33,11 @@
                              ['node.style.background "grey" [["red"    [red] :keep]
                                                              ["green"  [green] :keep]
                                                              ["orange" [orange]]
-                                                             ['node.dataset.color   [reset]]]]) 
+                                                             [:kept   [reset]]]]
+                             ['node.style.color "grey" [["green"    [red] :keep]
+                                                        ["blue"  [green] :keep]
+                                                        ["white" [orange]]
+                                                        [:kept   [reset]]]]) 
                   [:button {:onClick (hk/fire red)} "red"]
                   [:button {:onClick (hk/fire green)} "green"])])
 
