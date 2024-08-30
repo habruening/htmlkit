@@ -1,5 +1,5 @@
 (ns htmlkit.html
-  (:require [reviewtool.base.js :as js]))
+  (:require [htmlkit.js :as js]))
 
 ;;; Event Management
 
@@ -97,7 +97,7 @@
         script (map #(register-handler (first %) (str id) (second %))
                     reactions)
         node (add-id node id)] ; todo: Probably the id must come out of the node and out of add-id.
-    (list node script)))         todo: Probably the script must go inside.
+    (list node script)))       ; todo: Probably the script must go inside.
 
 (comment
   (create-with-event-handler [:p "node"] '("show" "function(){show()}")
@@ -193,7 +193,7 @@
                           (into coll
                                 (reduce (fn [coll [value events]]
                                           (into coll
-                                                (map (fn [event] (list event (js/jsq (fn [] (set! (uq target) (uq value))))))
+                                                (map (fn [event] (list event (js/jsq (fn [node] (set! (uq target) (uq value))))))
                                                      events)))
                                         [] (last values-events))))
                         [] variables-values-events)] 
@@ -212,7 +212,7 @@
   (let-events [cancel]
               (let-event-map [events [:onClick :onMouseEnter :onMouseLeave]]
                              (add-events [:p "I send events"] events)
-                             (puppet [:p "I react"]
+                             (puppet [:p "I react"] 
                                      ['node.style.display "auto" [["none" [(events :onClick)]]
                                                                   ["auto" [cancel]]]]
                                      ['node.visibility "visible" [["hidden" [(events :onMouseEnter)]]

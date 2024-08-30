@@ -19,7 +19,7 @@
         (and (seq? code) (= (first code) 'js<-))
         (second code)
         (seq? code)     (let [operation (str (first code))
-                              js-operation (->> operation (str "js") symbol (ns-resolve 'reviewtool.base.js))]
+                              js-operation (->> operation (str "js") symbol (ns-resolve 'htmlkit.js))]
                           (if js-operation
                             (apply js-operation (rest code))
                             (if (clojure.string/starts-with? operation ".")
