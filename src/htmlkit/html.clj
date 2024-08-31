@@ -78,7 +78,7 @@
 
   (map #(let-events [do-something]
                     do-something %) [1 2])
-  
+
   (let-event-map [events '[a {:a b} 34]]
                  (events 'a)
                  (events '{:a b})
@@ -181,43 +181,124 @@
               (add-events [:button {:border 1} "click-me"]
                           {:onClick click
                            :onMouseEnter [[hover "enter"] seen]
-                           :onMouseLeave [[hover "leave"]]})) 
-  )
+                           :onMouseLeave [[hover "leave"]]})))
+
+(defn- initial-value? [[value events & opts]]
+  (some #(= % :init) opts))
+
+(comment
+  (initial-value? ["none" [:a :b]])
+  (initial-value? ["none" [:a :b] :init])
+  (initial-value? ["none" [:a :b] :c :init])
+  (initial-value? ["none" [:a :b] :init :d]))
+
+(defn- initial-value [values-events]
+  (->> values-events (filter initial-value?) first first))
+
+(comment
+  (initial-value [["none" []]])
+  (initial-value [["none" []]
+                  ["init" [] :init]]))
+
+(defn- initial-values [variables-values-events]
+  (->> variables-values-events
+       (map #(vector (first %) (initial-value (second %))))
+       (filter second)))
+
+(comment
+  (initial-values [[:a [["none" []]
+                        ["init-a" [] :init]]]
+                   [:b [["none" []]
+                        ["init-b" []]]]
+                   [:c [["none" []]
+                        ["init-c" [] :init]]]]))
+
+(defn- with-data-ids [initial-values]
+  (map #(conj % (str (gensym))) initial-values))
+
+(comment
+  (with-data-ids
+    (initial-values [[:a [["none" []]
+                          ["init-a" [] :init]]]
+                     [:b [["none" []]
+                          ["init-b" []]]]
+                     [:c [["none" []]
+                          ["init-c" [] :init]]]])))
+
+(defn- jsq-setter [target value & {:keys [from keep]}]
+  (let [value-or-saved (if (= value :kept) from value)
+        jsq-set-value     (js/q (set! (uq target) (uq value-or-saved)))
+        jsq-keep (if keep (js/q (set! (uq keep) (uq value-or-saved))))]
+    (if jsq-keep
+      (js/q (do (uq jsq-set-value) (uq jsq-keep)))
+      jsq-set-value)))
+
+(comment
+  (jsq-setter 'node.style.color "red" 'data.attributes.xyz)
+  (jsq-setter 'node.style.color :kept :from 'data.attributes.xyz)
+  (jsq-setter 'node.style.color "red" :keep 'data.attributes.xyz)
+  (jsq-setter 'node.style.color "red" 'data.attributes.xyz :init))
+
+(defn- as-event-handlers [[target values-events data-id]]
+  (let [into-event-handler (fn [value opts]
+                             (let [keep-in (if (some #(= % :keep) opts) data-id)]
+                               (jsq-setter target value :from data-id :keep keep-in)))
+        events-handlers    (fn [[value events & opts]]
+                             (map #(vector % (into-event-handler value opts)) events))] 
+    (mapcat events-handlers values-events)))
+
+(as-event-handlers ['node.style.color
+                    [["none"    ["click" "clock"]]
+                     ["default" ["reset"] :keep]
+                     [:kept     ["undo"]]]
+                    'data-color])
+
+(defn- create-event-handlers [variables-values-events]
+  (mapcat as-event-handlers variables-values-events))
+
+(create-event-handlers [['node.style.color
+                         [["none"    ["click" "clock"]]
+                          ["default" ["reset"] :keep]
+                          [:kept     ["undo"]]]
+                         'data-color]
+                        ['node.style.background
+                         [["none"    ["click" "clock"]]
+                          ["bg-default"    ["reset"] :keep]
+                          [:kept     ["undo"]]]
+                         'data-bg]])
+
 
 (defn puppet [node & variables-values-events]
-  (let [data           (repeatedly (count variables-values-events) #(clojure.string/lower-case (str (gensym))))
-        data-keywords  (map #(keyword (str "data-" %)) data)
-        initial-data   (map vector data-keywords (map second variables-values-events))
+  (let [initial-values (-> variables-values-events initial-values with-data-ids)
+        initialisation (map (fn [[variable value data-name]]
+                              [(keyword (str "data-" data-name)) value])
+                            initial-values)
         handler (reduce (fn [coll [[target & values-events] data]]
-                          (let [data-symbol         (symbol (str 'node.dataset. data))]
+                          (let [data-symbol (symbol (str 'node.dataset. data))]
                             (into coll
                                   (reduce (fn [coll [value events option]]
                                             (into coll
-                                                  (map (fn [event]
-                                                         (list event
-                                                               (js/jsq
-                                                                (fn [node]
-                                                                  (do (set! (uq target) (uq (if (= value :kept) data-symbol value)))
-                                                                      (uq (if (= option :keep)
-                                                                            (js/jsq (jsi (set! (uq data-symbol) (uq value)))))))))))
+                                                  (map #(list % (jsq-setter target value data-symbol option))
                                                        events)))
                                           [] (last values-events)))))
                         [] (map vector variables-values-events data))]
-    (apply create-with-event-handler (attributes-into-node node (into {} initial-data)) handler)))
+    (attributes-into-node node (into {} initialisation))
+    #_(apply create-with-event-handler (attributes-into-node node (into {} initial-data)) handler)))
 
 ; Todo: The 'node in puppet is an magic string. It must be an arg. Not a problem, but
 ;       inconsistent.
 
 (comment
   (puppet [:h "node"]
-          ['node.style.display "none" [["none" ["ev-f" "ev-g"]]
-                                       ["auto" ["ev-h"]]]]
-          ['node.visibility "hidden" [["hidden" ["ev-j"]]
-                                      ["visible" ["ev-j"]]]])
+          ['node.style.display [["none" ["ev-f" "ev-g"]]
+                                ["auto" ["ev-h"]]]]
+          ['node.visibility [["hidden" ["ev-j"]]
+                             ["visible" ["ev-j"]]]])
 
   (puppet [:h "node"]
-          ['node.style.display "none" [["none" ["ev-f" "ev-g"] :keep]
-                                       [:kept ["ev-h"]]]])
+          ['node.style.display [["none" ["ev-f" "ev-g"] :keep]
+                                ["inline" ["ev-h"] :init]
+                                [:kept ["ev-h"]]]])
 
   ; The following is not a good programming style. We would not pass these keywords around, because
   ; they represent low level details. But that example demonstrates the whole event mechanism.
@@ -228,8 +309,7 @@
                                      ['node.style.display "auto" [["block" [(events :onClick)]]
                                                                   ["auto" [cancel]]]]
                                      ['node.style.visibility "visible" [["hidden" [(events :onMouseEnter)]]
-                                                                        ["visible" [(events :onMouseLeave)]]]])))
-  )
+                                                                        ["visible" [(events :onMouseLeave)]]]]))))
 
 ;;; Todo: puppet and with-event-handler<-jsq cannot be used together, because they both create
 ;;; lists. But both need nodes. They also both add their own id. So this conflicts. Perhaps the
