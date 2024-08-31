@@ -100,7 +100,8 @@
     (list node script)))       ; todo: Probably the script must go inside.
 
 (comment
-  (create-with-event-handler [:p "node"] '("show" "function(){show()}")
+  (create-with-event-handler [:p "node"]
+                             '("show" "function(){show()}")
                              '("hide" "function(){hide()}"))
   (create-with-event-handler [:p {:style false}] (list "show" "function(){}")))
 
@@ -184,35 +185,28 @@
   )
 
 (defn puppet [node & variables-values-events]
-  (let [initial-values (->> variables-values-events
-                            (filter #(string? (second %)))
-                            (map #(list 'set! (first %) (second %)))
-                            (apply list 'do)
-                            js/js)
-        data                (clojure.string/lower-case (str (gensym)))
-        data-keyword        (keyword (str "data-" data))
-        data-symbol         (symbol (str 'node.dataset. data))
+  (let [data           (repeatedly (count variables-values-events) #(clojure.string/lower-case (str (gensym))))
+        data-keywords  (map #(keyword (str "data-" %)) data)
+        initial-data   (map vector data-keywords (map second variables-values-events))
+        handler (reduce (fn [coll [[target & values-events] data]]
+                          (let [data-symbol         (symbol (str 'node.dataset. data))]
+                            (into coll
+                                  (reduce (fn [coll [value events option]]
+                                            (into coll
+                                                  (map (fn [event]
+                                                         (list event
+                                                               (js/jsq
+                                                                (fn [node]
+                                                                  (do (set! (uq target) (uq (if (= value :kept) data-symbol value)))
+                                                                      (uq (if (= option :keep)
+                                                                            (js/jsq (jsi (set! (uq data-symbol) (uq value)))))))))))
+                                                       events)))
+                                          [] (last values-events)))))
+                        [] (map vector variables-values-events data))]
+    (apply create-with-event-handler (attributes-into-node node (into {} initial-data)) handler)))
 
-        handler (reduce (fn [coll [target & values-events]]
-                          (into coll
-                                (reduce (fn [coll [value events option]]
-                                          (into coll
-                                                (map (fn [event]
-                                                       (list event
-                                                             (js/jsq
-                                                              (fn [node]
-                                                                (do (set! (uq target) (uq (if (= value :kept) data-symbol value)))
-                                                                    (uq (if (= option :keep)
-                                                                          (js/jsq (jsi (set! (uq data-symbol) (uq value)))))))))))
-                                                     events)))
-                                        [] (last values-events))))
-                        [] variables-values-events)]
-    (apply create-with-event-handler (attributes-into-node node {:onLoad initial-values data-keyword "yellow"}) handler)))
-
-(gensym)
-
-(keyword (str "data-" (gensym)))
-(symbol (str 'node.dataset. (gensym)))
+; Todo: The 'node in puppet is an magic string. It must be an arg. Not a problem, but
+;       inconsistent.
 
 (comment
   (puppet [:h "node"]
@@ -220,18 +214,22 @@
                                        ["auto" ["ev-h"]]]]
           ['node.visibility "hidden" [["hidden" ["ev-j"]]
                                       ["visible" ["ev-j"]]]])
-  
-  
+
+  (puppet [:h "node"]
+          ['node.style.display "none" [["none" ["ev-f" "ev-g"] :keep]
+                                       [:kept ["ev-h"]]]])
+
   ; The following is not a good programming style. We would not pass these keywords around, because
   ; they represent low level details. But that example demonstrates the whole event mechanism.
   (let-events [cancel]
               (let-event-map [events [:onClick :onMouseEnter :onMouseLeave]]
                              (add-events [:p "I send events"] events)
-                             (puppet [:p "I react"] 
+                             (puppet [:p "I react"]
                                      ['node.style.display "auto" [["block" [(events :onClick)]]
                                                                   ["auto" [cancel]]]]
-                                     ['node.style.visibility "visible" [["hidden" [(events :onMouseEnter)]] 
-                                                                        ["visible" [(events :onMouseLeave)]]]]))))
+                                     ['node.style.visibility "visible" [["hidden" [(events :onMouseEnter)]]
+                                                                        ["visible" [(events :onMouseLeave)]]]])))
+  )
 
 ;;; Todo: puppet and with-event-handler<-jsq cannot be used together, because they both create
 ;;; lists. But both need nodes. They also both add their own id. So this conflicts. Perhaps the
