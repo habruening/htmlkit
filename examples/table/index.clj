@@ -28,16 +28,13 @@
   [:body
    (hk/load-event-handling)
    (hk/let-events [red green orange reset]
-                  (hk/puppet [:p {:onMouseEnter (hk/fire orange)
-                                  :onMouseLeave (hk/fire reset)} "I start white and get colored"]
-                             ['node.style.background "grey" [["red"    [red] :keep]
-                                                             ["green"  [green] :keep]
-                                                             ["orange" [orange]]
-                                                             [:kept   [reset]]]]
-                             ['node.style.color "brown" [["green"    [red] :keep]
-                                                        ["blue"  [green] :keep]
-                                                        ["white" [orange]]
-                                                        [:kept   [reset]]]]) 
+                  (hk/toggle-node [:p {:onMouseEnter (hk/fire orange)
+                                       :onMouseLeave (hk/fire reset)} "I start white and get colored"]
+                                  ['node.style.background [["red"    [red] :keep]
+                                                           ["green"  [green] :keep]
+                                                           ["orange" [orange]] 
+                                                           [:kept    [reset]]
+                                                           ["grey" [] :init]]]) 
                   [:button {:onClick (hk/fire red)} "red"]
                   [:button {:onClick (hk/fire green)} "green"])])
 
