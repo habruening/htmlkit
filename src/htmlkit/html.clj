@@ -236,19 +236,43 @@
 (comment
   (initialisation-attrs '([:a "init-a" "g__33519"] [:b nil "g__33520"] [:c "init-c" "G__33521"])))
 
-(defn- jsq-setter [target value & {:keys [from keep]}]
+(defn- jsq-setter [target value & {:keys [from keep incase]}]
   (let [value-or-saved (if (= value :kept) (symbol from) value)
         jsq-set-value     (js/q (set! (uq target) (uq value-or-saved)))
-        jsq-keep (if keep (js/q (set! (uq keep) (uq value-or-saved))))]
-    (js/jsq (fn [node] (uq (if jsq-keep
-                             (js/q (do (uq jsq-set-value) (uq jsq-keep)))
-                             jsq-set-value))))))
+        jsq-keep (if keep (js/q (set! (uq keep) (uq value-or-saved))))
+        jsq-set (if jsq-keep
+                  (js/q (do (uq jsq-set-value) (uq jsq-keep)))
+                  jsq-set-value)
+        jsq      (if incase 
+                   (js/q (if (= (uq incase) (uq target))
+                             (uq jsq-set)))
+                   jsq-set)] 
+    (js/jsq (fn [node] (uq jsq)))))
+
+(js/jsq (if (= (uq 'b) (uq 'a))
+          (uq 'c)))
 
 (comment
   (jsq-setter 'node.style.color "red" 'data.attributes.xyz)
   (jsq-setter 'node.style.color :kept :from 'data.attributes.xyz)
   (jsq-setter 'node.style.color "red" :keep 'data.attributes.xyz)
-  (jsq-setter 'node.style.color "red" 'data.attributes.xyz :init))
+  (jsq-setter 'node.style.color "red" 'data.attributes.xyz :init)
+  (jsq-setter 'node.style.color "red" :keep 'data.attributes.xyz :incase "blue"))
+
+(defn reduceme [coll next]
+  (cond coll (conj coll next)
+        (= next :incase) [next]))
+
+(reduceme [:a] 4)
+(conj [3] 4)
+
+
+(defn search-incase [opts]
+  (first (rest (reduce #(cond %1 (conj %1 %2)
+                 (= %2 :incase) [%2])
+          nil opts))))
+
+(search-incase [1 2 :incase 3])
 
 (defn- as-event-handlers
   ([variables-values-events]
@@ -256,8 +280,9 @@
   ([value opts]
    (fn [target data-id]
      (let [dataset-id (symbol (str "node.dataset." data-id))
-           keep-in (if (some #(= % :keep) opts) dataset-id)]
-       (jsq-setter target value :from dataset-id :keep keep-in))))
+           keep-in (if (some #(= % :keep) opts) dataset-id)
+           incase (search-incase opts)]
+       (jsq-setter target value :from dataset-id :keep keep-in :incase incase))))
   ([target values-events data-id]
    (let [events-handlers (fn [[value events & opts]]
                            (map #(vector % ((as-event-handlers value opts) target data-id)) events))]
@@ -285,6 +310,17 @@
                      'data-color]
                     ['node.style.background
                      [["none"    ["click" "clock"]]
+                      ["bg-default"    ["reset"] :keep]
+                      [:kept     ["undo"]]]
+                     'dg]])
+
+(as-event-handlers [['node.style.color
+                     [["none"    ["click" "clock"]]
+                      ["default" ["reset"] :keep]
+                      [:kept     ["undo"]]]
+                     'data-color]
+                    ['node.style.background
+                     [["none"    ["click" "clock"] :incase "abcd"]
                       ["bg-default"    ["reset"] :keep]
                       [:kept     ["undo"]]]
                      'dg]])

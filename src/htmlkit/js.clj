@@ -91,6 +91,11 @@
 (defn jsreturn [func]
   (str "return " (js func)))
 
+(defn jsif [condition then & else]
+  (str "if" (js condition) "{" (js then) "}" (if else (str "else{" (js else) "}")))) ; don't know if parenthesis required.
+
+(defn js= [left right]
+  (str "(" (js left) "==" (js right) ")"))
 
 (comment (js '(func))
          (js '(func arg_1 arg_2))
@@ -117,7 +122,10 @@
          (js '(fn [] (set! a 16) (set! b 12)))
          (js '(aget a 3))
          (js '(set! (aget a 3) 17))
-         (js '(new Car)))
+         (js '(new Car))
+         (js '(= a b))
+         (js '(if (= a 2) b))
+         (js '(if (= a 2) b c)))
 
 (defn jsdo [& code]
   (js-block code))

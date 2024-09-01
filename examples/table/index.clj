@@ -7,7 +7,7 @@
 
 
 
-(defn example-1 []
+(defn example-1 [] ; to be updated
   [:body
     (hk/load-event-handling)
     (hk/let-events [reset]
@@ -27,14 +27,17 @@
 (defn example-2 []
   [:body
    (hk/load-event-handling)
-   (hk/let-events [red green orange reset]
-                  (hk/toggle-node [:p {:onMouseEnter (hk/fire orange)
-                                       :onMouseLeave (hk/fire reset)} "I start white and get colored"]
+   (hk/let-events [red green hover reset select]
+                  (hk/toggle-node [:p {:onMouseEnter (hk/fire hover)
+                                       :onMouseLeave (hk/fire reset)
+                                       :onClick (hk/fire select)} "I start white and get colored"]
                                   ['node.style.background [["red"    [red] :keep]
                                                            ["green"  [green] :keep]
-                                                           ["orange" [orange]] 
+                                                           ["grey" [hover]] 
+                                                           ["grey" [select] :keep :incase "orange"]
+                                                           ["orange" [select] :keep]
                                                            [:kept    [reset]]
-                                                           ["grey" [] :init]]]) 
+                                                           ["lightgrey" [] :init]]]) 
                   [:button {:onClick (hk/fire red)} "red"]
                   [:button {:onClick (hk/fire green)} "green"])])
 
