@@ -34,8 +34,7 @@
                                   ['node.style.background [["red"    [red] :keep]
                                                            ["green"  [green] :keep]
                                                            ["grey" [hover]] 
-                                                           ["grey" [select] :keep :incase "orange"]
-                                                           ["orange" [select] :keep]
+                                                           [["orange" "grey"] [select] :keep]
                                                            [:kept    [reset]]
                                                            ["lightgrey" [] :init]]]) 
                   [:button {:onClick (hk/fire red)} "red"]

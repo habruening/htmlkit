@@ -37,7 +37,11 @@
                                     (doseq
                                      (aget actions event)
                                       (fn [node]
-                                        (react node ...args)))))))])
+                                        (react node ...args)))))
+                       (set! othervalue (fn [alternatives current]
+                                          (if (= (aget alternatives 0) current)
+                                            (return (aget alternatives 1))
+                                            (return (aget alternatives 0)))))))])
 
 (comment (load-event-handling))
 
@@ -237,9 +241,11 @@
   (initialisation-attrs '([:a "init-a" "g__33519"] [:b nil "g__33520"] [:c "init-c" "G__33521"])))
 
 (defn- jsq-setter [target value & {:keys [from keep incase]}]
-  (let [value-or-saved (if (= value :kept) (symbol from) value)
-        jsq-set-value     (js/q (set! (uq target) (uq value-or-saved)))
-        jsq-keep (if keep (js/q (set! (uq keep) (uq value-or-saved))))
+  (let [new-value (cond (= value :kept) (symbol from)
+                        (vector? value) (js/q (othervalue (uq value) (uq keep)))
+                        :else value)
+        jsq-set-value     (js/q (set! (uq target) (uq new-value)))
+        jsq-keep (if keep (js/q (set! (uq keep) (uq new-value))))
         jsq-set (if jsq-keep
                   (js/q (do (uq jsq-set-value) (uq jsq-keep)))
                   jsq-set-value)
