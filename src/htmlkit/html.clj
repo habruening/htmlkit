@@ -51,6 +51,15 @@
 
 (comment (register-event "ev"))
 
+(type (array-map :a 3))
+(type {:a 3})
+val
+(require 'clojure.walk)
+(clojure.walk/postwalk (fn [item]
+                          (if (string? item)
+                            {item (gensym)}
+                            item))
+                        {:a [{:23 "sdf"}]})
 
 (defn register-handler [event id handler]
   [:script (js/jsq (.push (aget actions (uq event))
@@ -331,7 +340,7 @@
                       [:kept     ["undo"]]]
                      'dg]])
 
-(defn toggle-node [node & variables-values-events]
+(defn reactive-toggle [node & variables-values-events]
   (let [initial-values (-> variables-values-events initial-values with-data-ids)
         initial-attrs  (initialisation-attrs initial-values)
         handlers       (->> variables-values-events
@@ -340,17 +349,23 @@
                             (into []))] 
     (apply create-with-event-handler (attributes-into-node node initial-attrs) handlers)))
          
-; Todo: The 'node in toggle-node is a magic string. It must be an arg. Not a problem, but
+; Todo: The 'node in reactive-toggle is a magic string. It must be an arg. Not a problem, but
 ;       inconsistent.
 
 (comment
-  (toggle-node [:h "node"]
+  (reactive-toggle [:h "node"]
           ['node.style.display [["none" ["ev-f" "ev-g"]]
                                 ["auto" ["ev-h"]]]]
           ['node.visibility [["hidden" ["ev-j"]]
                              ["visible" ["ev-j"]]]])
+  
+  (reactive-toggle [node.style.display [["none" ["ev-f" "ev-g"]]
+                                        ["auto" ["ev-h"]]]
+                    node.visibility [["hidden" ["ev-j"]]
+                                     ["visible" ["ev-j"]]]]
+                   [:h "node"])
 
-  (toggle-node [:h "node"]
+  (reactive-toggle [:h "node"]
           ['node.style.display [["none" ["ev-f" "ev-g"] :keep]
                                 ["inline" ["ev-h"] :init]
                                 [:kept ["ev-h" "ev-f"]]]])
@@ -360,12 +375,12 @@
   (let-events [cancel]
               (let-event-map [events [:onClick :onMouseEnter :onMouseLeave]]
                              (add-events [:p "I send events"] events)
-                             (toggle-node [:p "I react"]
+                             (reactive-toggle [:p "I react"]
                                           ['node.style.display [["block" [(events :onClick)]]
                                                                 ["auto" [cancel] :init]]]
                                           ['node.style.visibility [["hidden" [(events :onMouseEnter)]]
                                                                    ["visible" [(events :onMouseLeave)] :init]]]))))
 
-;;; Todo: toggle-node and with-event-handler<-jsq cannot be used together, because they both create
+;;; Todo: reactive-toggle and with-event-handler<-jsq cannot be used together, because they both create
 ;;; lists. But both need nodes. They also both add their own id. So this conflicts. Perhaps the
 ;;;;scripts can be moved inside. Then it can remain nodes. With a simple add-events it works already.
