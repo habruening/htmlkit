@@ -1,5 +1,6 @@
 (ns htmlkit.html
-  (:require [htmlkit.js :as js]))
+  (:require [htmlkit.js :as js]
+            [hiccup2.core :as hiccup2]))
 
 ;;; Event Management
 
@@ -17,7 +18,7 @@
 (defn attributes-into-node [[tag first-or-attrs & node-rest] more-attrs]
   (let [[attrs first] (if (map? first-or-attrs)
                         [first-or-attrs nil]
-                        [nil first-or-attrs])]    ; Hiccup will ignore nil
+                        [nil first-or-attrs])]    ; works because Hiccup ignores nil
     (vector tag (merge-attrs attrs more-attrs) first node-rest)))
 
 (comment
@@ -51,23 +52,12 @@
 
 (comment (register-event "ev"))
 
-(type (array-map :a 3))
-(type {:a 3})
-val
-(require 'clojure.walk)
-(clojure.walk/postwalk (fn [item]
-                          (if (string? item)
-                            {item (gensym)}
-                            item))
-                        {:a [{:23 "sdf"}]})
-
 (defn register-handler [event id handler]
   [:script (js/jsq (.push (aget actions (uq event))
-                          [(uq id) (jsi (uq handler))]))])
+                          [(uq id) (uq handler)]))])
 
-(comment
-  (let [handler "function(){}"]
-    (register-handler "ev" "id-2" handler)))
+(comment 
+  (register-handler "ev" "id-2" (js/q (fn []))))
 
 (defmacro let-events [events & body]
   (let [let-bindings (map #(vector % `(-> ~(name %) (str "_") gensym name)) events)
@@ -76,9 +66,9 @@ val
        ~(apply list 'list (concat init body)))))
 
 (defmacro let-event-map [[bindvar keys] & body]
-  `(let [keys--scripts-events# (map #(vector % (let-events [event#] event#)) ~keys)]
-     (let [~bindvar (into {} (map #(vector (first %) (-> % second last)) keys--scripts-events#))]
-       (list (map #(-> % second first) keys--scripts-events#) ~@body))))
+  `(let [keys-scripts-events# (map #(vector % (let-events [event#] event#)) ~keys)]
+     (let [~bindvar (into {} (map #(vector (first %) (-> % second last)) keys-scripts-events#))]
+       (list (map #(-> % second first) keys-scripts-events#) ~@body))))
 
 (comment
   (macroexpand-1 '(let-events [about-window-hide about-window-show] [:div]))
@@ -97,53 +87,52 @@ val
                  (events '{:a b})
                  (events 34)))
 
-(defn add-id [node id]
+(defn add-id [id node]
   (attributes-into-node node {:id id}))
 
 (comment
-  (add-id [:p "a" "b"] "xy1")
-  (add-id [:p {:id ""} "a" "b"] "xy1") ; should raise an error
-  (add-id [:p {:a :b} "a" "b"] "xy1"))
+  (add-id "xy1" [:p "a" "b"])
+  (add-id "xy1" [:p {:id ""} "a" "b"]) ; should raise an error
+  (add-id "xy1" [:p {:a :b} "a" "b"]))
 
 (defn create-with-event-handler [node & reactions]
+  ;todo: rename. Better similar to create-with-event-handler<-q, but without the <-q
   (let [id (gensym)
         script (map #(register-handler (first %) (str id) (second %))
                     reactions)
-        node (add-id node id)] ; todo: Probably the id must come out of the node and out of add-id.
+        node (add-id id node)] ; todo: Probably the id must come out of the node and out of add-id.
     (list node script)))       ; todo: Probably the script must go inside.
 
 (comment
   (create-with-event-handler [:p "node"]
-                             '("show" "function(){show()}")
-                             '("hide" "function(){hide()}"))
-  (create-with-event-handler [:p {:style false}] (list "show" "function(){}")))
+                             (list "show" (js/q (fn [] (show))))
+                             (list "hide" (js/q (fn [] (hide)))))
+  (create-with-event-handler [:p {:style false}] '("show" (jsi "function(){}"))))
 
-(js/js '(set! node.style.display "none"))
-
-(defmacro with-event-handler<-jsq [node & reactions]
+(defmacro create-with-event-handler<-q [node & reactions]
   (let [reactions (map #(list `list (first %)
-                              (list `js/jsq (list 'fn (into [] (second %)) (last %))))
+                              (list `js/q (list 'fn (into [] (second %)) (last %))))
                        reactions)]
     `(create-with-event-handler ~node ~@reactions)))
 
 (comment
-  (macroexpand-1 '(with-event-handler<-jsq [:p "This will disappear"]
+  (macroexpand-1 '(create-with-event-handler<-q [:p "This will disappear"]
                     ("show" [node] (set! node.style.display "none"))))
-  (macroexpand-1 '(with-event-handler<-jsq [:p attrs "This will disappear"]
+  (macroexpand-1 '(create-with-event-handler<-q [:p attrs "This will disappear"]
                     ("show" [node] (set! node.style.display "none"))))
-  (with-event-handler<-jsq [:p "This will disappear"]
+  (create-with-event-handler<-q [:p "This will disappear"]
     ("show" [node] (set! node.style.display "none")))
-  (with-event-handler<-jsq [:p {:onClick "nothing"} "This will disappear"]
+  (create-with-event-handler<-q [:p {:onClick "nothing"} "This will disappear"]
     ("show" [node] (set! node.style.display "none")))
   (let [attrs {:onClick "nothing"}]
-    (with-event-handler<-jsq [:p attrs "This will disappear"]
+    (create-with-event-handler<-q [:p attrs "This will disappear"]
       ("show" [node] (set! node.style.display "auto"))
       ("hide" [node] (set! node.style.display "none"))))
   (let-events [about-window-hide about-window-show]
-              [:div (with-event-handler<-jsq [:p "This will disappear"]
+              [:div (create-with-event-handler<-q [:p "This will disappear"]
                       (about-window-hide [node] (set! node.style.display "none")))
                [:botton]])
-  (map #(with-event-handler<-jsq [:p "This will disappear" %]
+  (map #(create-with-event-handler<-q [:p "This will disappear" %]
           ("show" [node] (set! node.style.display "none"))) [1 2]))
 
 (defn fire [event & args]
@@ -154,7 +143,7 @@ val
   (repeat 2
           (let-events [about-window-hide about-window-show]
                       [:div
-                       (with-event-handler<-jsq [:p "This will disappear"]
+                       (create-with-event-handler<-q [:p "This will disappear"]
                          (about-window-hide [node] (set! node.style.display "none"))
                          (about-window-show [node] (set! node.style.display "initial")))
                        [:botton {:onclick (fire about-window-hide)}]
@@ -171,7 +160,7 @@ val
 
   (let-events [about-window-hide]
               [:div
-               (with-event-handler<-jsq [:p "This will disappear"]
+               (create-with-event-handler<-q [:p "This will disappear"]
                  (about-window-hide [node arg] (set! node.style.display arg)))
                [:botton {:onclick (fire about-window-hide "show")}]]))
 
@@ -181,12 +170,15 @@ val
                  (->> (if (vector? event-spec) event-spec [event-spec])
                       (map #(if (vector? %) % [%]))
                       (map #(list 'jsi (apply fire %)))
-                      (apply list 'do)
+                      (list 'do*)
                       js/js))))
 
 (comment
   (construct-events-attrs {:onClick "click"
-                           :onMouseEnter [["hover" "enter"] "hoverall"]}))
+                           :onMouseEnter [["hover" "enter"] "hoverall"]})
+  
+  (construct-events-attrs {:onClick [["start" (js/q (abc))]]})
+  )
 
 (defn add-events [node event-map]
   (attributes-into-node node (construct-events-attrs event-map)))
@@ -254,18 +246,17 @@ val
                         (vector? value) (js/q (othervalue (uq value) (uq keep)))
                         :else value)
         jsq-set-value     (js/q (set! (uq target) (uq new-value)))
-        jsq-keep (if keep (js/q (set! (uq keep) (uq new-value))))
+        jsq-keep (if keep
+                   (js/q (set! (uq keep) (uq new-value))))
         jsq-set (if jsq-keep
-                  (js/q (do (uq jsq-set-value) (uq jsq-keep)))
+                  (js/q (do (uq jsq-set-value)
+                            (uq jsq-keep)))
                   jsq-set-value)
-        jsq      (if incase 
+        jsq      (if incase
                    (js/q (if (= (uq incase) (uq target))
-                             (uq jsq-set)))
+                           (uq jsq-set)))
                    jsq-set)] 
     (js/jsq (fn [node] (uq jsq)))))
-
-(js/jsq (if (= (uq 'b) (uq 'a))
-          (uq 'c)))
 
 (comment
   (jsq-setter 'node.style.color "red" 'data.attributes.xyz)
@@ -273,14 +264,6 @@ val
   (jsq-setter 'node.style.color "red" :keep 'data.attributes.xyz)
   (jsq-setter 'node.style.color "red" 'data.attributes.xyz :init)
   (jsq-setter 'node.style.color "red" :keep 'data.attributes.xyz :incase "blue"))
-
-(defn reduceme [coll next]
-  (cond coll (conj coll next)
-        (= next :incase) [next]))
-
-(reduceme [:a] 4)
-(conj [3] 4)
-
 
 (defn search-incase [opts]
   (first (rest (reduce #(cond %1 (conj %1 %2)
@@ -340,9 +323,12 @@ val
                       [:kept     ["undo"]]]
                      'dg]])
 
-(defn reactive-toggle [node & variables-values-events]
-  (let [initial-values (-> variables-values-events initial-values with-data-ids)
-        initial-attrs  (initialisation-attrs initial-values)
+(defn reactive-toggle [variables-values-events node]
+  (let [variables-values-events (map vector
+                                     (take-nth 2 variables-values-events)
+                                     (take-nth 2 (rest variables-values-events)))
+        initial-values (-> variables-values-events initial-values with-data-ids)
+        initial-attrs  (initialisation-attrs initial-values) 
         handlers       (->> variables-values-events
                             (map #(conj %2 %1) (map last initial-values))
                             as-event-handlers
@@ -352,35 +338,36 @@ val
 ; Todo: The 'node in reactive-toggle is a magic string. It must be an arg. Not a problem, but
 ;       inconsistent.
 
+
 (comment
-  (reactive-toggle [:h "node"]
-          ['node.style.display [["none" ["ev-f" "ev-g"]]
-                                ["auto" ["ev-h"]]]]
-          ['node.visibility [["hidden" ["ev-j"]]
-                             ["visible" ["ev-j"]]]])
+  (reactive-toggle ['node.style.display [["none" ["ev-f" "ev-g"]]
+                                         ["auto" ["ev-h"]]]
+                    'node.visibility [["hidden" ["ev-j"]]
+                                      ["visible" ["ev-j"]]]]
+                   [:h "node"])
   
-  (reactive-toggle [node.style.display [["none" ["ev-f" "ev-g"]]
-                                        ["auto" ["ev-h"]]]
-                    node.visibility [["hidden" ["ev-j"]]
-                                     ["visible" ["ev-j"]]]]
+  (reactive-toggle ['node.style.display [["none" ["ev-f" "ev-g"]]
+                                         ["auto" ["ev-h"]]]
+                    'node.visibility [["hidden" ["ev-j"]]
+                                      ["visible" ["ev-j"]]]]
                    [:h "node"])
 
-  (reactive-toggle [:h "node"]
-          ['node.style.display [["none" ["ev-f" "ev-g"] :keep]
-                                ["inline" ["ev-h"] :init]
-                                [:kept ["ev-h" "ev-f"]]]])
+  (reactive-toggle ['node.style.display [["none" ["ev-f" "ev-g"] :keep]
+                                         ["inline" ["ev-h"] :init]
+                                         [:kept ["ev-h" "ev-f"]]]]
+                   [:h "node"])
 
   ; The following is not a good programming style. We would not pass these keywords around, because
   ; they represent low level details. But that example demonstrates the whole event mechanism.
   (let-events [cancel]
               (let-event-map [events [:onClick :onMouseEnter :onMouseLeave]]
                              (add-events [:p "I send events"] events)
-                             (reactive-toggle [:p "I react"]
-                                          ['node.style.display [["block" [(events :onClick)]]
-                                                                ["auto" [cancel] :init]]]
-                                          ['node.style.visibility [["hidden" [(events :onMouseEnter)]]
-                                                                   ["visible" [(events :onMouseLeave)] :init]]]))))
+                             (reactive-toggle ['node.style.display [["block" [(events :onClick)]]
+                                                                    ["auto" [cancel] :init]]
+                                               'node.style.visibility [["hidden" [(events :onMouseEnter)]]
+                                                                       ["visible" [(events :onMouseLeave)] :init]]]
+                                              [:p "I react"]))))
 
-;;; Todo: reactive-toggle and with-event-handler<-jsq cannot be used together, because they both create
+;;; Todo: reactive-toggle and create-with-event-handler<-q cannot be used together, because they both create
 ;;; lists. But both need nodes. They also both add their own id. So this conflicts. Perhaps the
 ;;;;scripts can be moved inside. Then it can remain nodes. With a simple add-events it works already.

@@ -1,5 +1,4 @@
-(ns htmlkit.js 
-  #_(:require [clojure.walk :as walk]))
+(ns htmlkit.js)
 
 (def js)
 (defn jscall [function & arguments]
@@ -7,6 +6,9 @@
 
 (defn jsmethodcall [method & arguments]
   (str (js (first arguments)) method "(" (clojure.string/join "," (map js (rest arguments))) ")"))
+
+(defn jsmemberaccess [method & arguments]
+  (str (js (first arguments)) "." (subs (str method) 2)))
 
 (defn js [code]
   (cond (fn? code)      (code)
@@ -20,11 +22,14 @@
         (second code)
         (seq? code)     (let [operation (str (first code))
                               js-operation (->> operation (str "js") symbol (ns-resolve 'htmlkit.js))]
-                          (if js-operation
-                            (apply js-operation (rest code))
-                            (if (clojure.string/starts-with? operation ".")
-                              (apply jsmethodcall code)
-                              (apply jscall code))))))
+                          (cond js-operation
+                                (apply js-operation (rest code))
+                                (clojure.string/starts-with? operation ".-")
+                                (apply jsmemberaccess code)
+                                (clojure.string/starts-with? operation ".")
+                                (apply jsmethodcall code)
+                                :else
+                                (apply jscall code)))))
 
 (defn jsjsi [code]
   code)
@@ -109,6 +114,8 @@
          (js '(method_1 o))
          (js '(.method_1 o a1 a2))
          (js '(.method_1 o (func_2 1)))
+         (js '(.-memb_1 o ))
+         (js '(.-memb_1 (.method_1 o)))
          (js '(+ 1 1))
          (js '(- 1 1))
          (js '(set! a b))
@@ -138,23 +145,18 @@
 (defn jsdo [& code]
   (js-block code))
 
+(defn jsdo* [& code]
+  (apply js-block code))
+
 (comment (js '(+ a b))
          (js '(inc a))
          (js '(do (inc a)
                   (inc b)))
-         (js '(do (inc a))))
-
-#_(defmacro qu 
-  [code]
-  (cond (symbol? code)                            (list 'quote code)
-        (number? code)                            code
-        (string? code)                            code
-        (keyword? code)                           code
-        (vector? code)                            (apply vector (map #(list `qu %) code))
-        (map? code)                               (update-keys (update-vals code #(list `qu %)) #(list `qu %))
-        (and (list? code) (= (first code) 'uq)) `(fn [] ~(second code))
-        (and (list? code))                        (apply list 'list (map #(list `qu %) code))))
-
+         (js '(do (inc a)))
+         (js '(do* ((inc a))))
+         (js '(do* ((inc a)
+                    (inc b))))
+         )
 
 (defmacro q
   [code]
@@ -165,13 +167,7 @@
         (vector? code)                            (apply vector (map #(list `q %) code))
         (map? code)                               (update-keys (update-vals code #(list `q %)) #(list `q %))
         (and (list? code) (= (first code) 'uq))   (second code)
-        (and (list? code))                        (apply list 'list (map #(list `q %) code))))
-
-
-#_ ; This was the first implementation. But the one above also seems to work well.
-(defmacro q [code]
-  `(clojure.walk/postwalk
-    (fn [item#] (if (fn? item#) (item#) item#)) (qu ~code)))
+        (list? code)                              (apply list 'list (map #(list `q %) code))))
 
 (comment
   (q 4) 
@@ -185,7 +181,9 @@
   (q {a b})
   (q [a b c])
   (q (a [b c d] e))
-  (q (a (b c d) e))
+  (q (a (b c d) e)) 
+  (q (a (uq (+ 1 1)) b))
+  (q (uq `abc))
   (let [x 'b] (q 4))
   (let [x 'b] (q (uq x)))
   (let [x 'b] (q (a (uq x))))
@@ -195,8 +193,7 @@
   (let [x 'b] (q (a [(uq x) c d] e)))
   (let [x 'b] (q (a ((uq x) c d) e)))
   (let [x 'b] (q ({a (uq x) c d} e)))
-  (let [x 'b] (q (uq (map identity ['a (q ((uq x) c))])))) 
-  )
+  (let [x 'b] (q (uq (map identity ['a (q ((uq x) c))])))))
 
 (defmacro jsq [code]
   `(js (q ~code)))
