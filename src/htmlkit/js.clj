@@ -116,6 +116,7 @@
          (js '(.method_1 o (func_2 1)))
          (js '(.-memb_1 o ))
          (js '(.-memb_1 (.method_1 o)))
+         (js '(.-memb_1 ((.-method_1 o))))
          (js '(+ 1 1))
          (js '(- 1 1))
          (js '(set! a b))

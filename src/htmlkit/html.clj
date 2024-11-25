@@ -156,7 +156,8 @@
                                [:botton {:onclick (fire about-window-show "here")}]                                       ; constant
                                [:botton {:onclick (fire about-window-show (.toUpperCase msg))}]                           ; data from server on server
                                [:botton {:onclick (fire about-window-show '(.toUpperCase msg))}]                          ; data from client on client
-                               [:botton {:onclick (fire about-window-show (js/jsq (jsi (.toUpperCase msg))))}]))]))       ; data from client on client
+                               [:botton {:onclick (fire about-window-show (js/jsq (jsi (.toUpperCase msg))))}]
+                               [:botton {:onclick (fire about-window-show (js/q (.toUpperCase msg)))}]))]))       ; data from client on client
 
   (let-events [about-window-hide]
               [:div
@@ -256,7 +257,7 @@
                    (js/q (if (= (uq incase) (uq target))
                            (uq jsq-set)))
                    jsq-set)] 
-    (js/jsq (fn [node] (uq jsq)))))
+    (js/q (fn [node] (uq jsq)))))
 
 (comment
   (jsq-setter 'node.style.color "red" 'data.attributes.xyz)
