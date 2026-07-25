@@ -81,8 +81,8 @@
 (defn jsaget [array idx]
   (str (js array) "[" (js idx) "]"))
 
-(defn jsnew [class]
-  (str "new " (str class) "()"))
+(defn jsnew [class & arguments]
+  (str "new " (str class) "(" (clojure.string/join "," (map js arguments)) ")"))
 
 (defn jsdoseq [seq-exprs body]
   (str (js seq-exprs) ".forEach(" (js body) ")"))
@@ -137,6 +137,7 @@
          (js '(aget a 3))
          (js '(set! (aget a 3) 17))
          (js '(new Car))
+         (js '(new Car "red"))
          (js '(= a b))
          (js '(!= a b))
          (js '(if (= a 2) b))
